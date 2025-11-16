@@ -1,6 +1,6 @@
 # 1. is_palindrome(text: str) -> bool - sprawdza, czy dany ciąg znaków jest palindromem (ignorując wielkość liter i spacje).
 def is_palindrome(text: str) -> bool:
-    return text == text[::-1]
+    return text.lower().replace(" ", "") == text[::-1].lower().replace(" ", "")
 
 # 2. fibonacci(n: int) -> int - zwraca n-ty element ciągu Fibonacciego (Załóż, że fibonacci(0) == 0, fibonacci(1) == 1).
 def fibonacci(n: int) -> int:
