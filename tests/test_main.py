@@ -3,7 +3,8 @@ from src.main import (
     is_palindrome,
     fibonacci,
     count_vowels,
-    calculate_discount
+    calculate_discount,
+    flatten_list
 )
 
 
@@ -76,3 +77,20 @@ class TestCalculateDiscount:
     def test_discount_out_of_range(self):
         with pytest.raises(ValueError):
             calculate_discount(100, 1.5)
+
+
+class TestFlattenList:
+    def test_flat(self):
+        assert flatten_list([1, 2, 3]) == [1, 2, 3]
+
+    def test_basic(self):
+        assert flatten_list([1, [2, 3], [4, [5]]]) == [1, 2, 3, 4, 5]
+
+    def test_empty(self):
+        assert flatten_list([]) == []
+    
+    def test_single_nested(self):
+        assert flatten_list([[[1]]]) == [1]
+
+    def test_basic2(self):
+        assert flatten_list([1,[2,[3,[4]]]]) == [1,2,3,4]

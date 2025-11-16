@@ -25,7 +25,15 @@ def calculate_discount(price: float, discount: float) -> float:
 
 # 5. flatten_list(nested_list: list) -> list - przyjmuje listę (mogącą zawierać zagnieżdżone listy) i zwraca ją „spłaszczoną”.  Przykład: [1, [2, 3], [4, [5]]] → [1, 2, 3, 4, 5]
 def flatten_list(nested_list: list) -> list:
-    return [item for sublist in nested_list for item in sublist]
+    ret = []
+
+    for item in nested_list:
+        if isinstance(item, list):
+            ret.extend(flatten_list(item))
+        else:
+            ret.append(item)
+
+    return ret
 
 # 6. word_frequencies(text: str) -> dict - zwraca słownik z częstością występowania słów w tekście (ignorując wielkość liter i interpunkcję).
 def word_frequencies(text: str) -> dict:
