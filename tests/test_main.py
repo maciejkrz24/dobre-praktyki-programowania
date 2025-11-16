@@ -4,7 +4,8 @@ from src.main import (
     fibonacci,
     count_vowels,
     calculate_discount,
-    flatten_list
+    flatten_list,
+    word_frequencies
 )
 
 
@@ -94,3 +95,20 @@ class TestFlattenList:
 
     def test_basic2(self):
         assert flatten_list([1,[2,[3,[4]]]]) == [1,2,3,4]
+
+
+class TestWordFrequencies:
+    def test_to_be(self):
+        assert word_frequencies("To be or not to be") == {"to": 2, "be": 2, "or": 1, "not": 1}
+
+    def test_hello_world(self):
+        assert word_frequencies("Hello world") == {"hello": 1, "world": 1}
+
+    def test_empty(self):
+        assert word_frequencies("") == {}
+
+    def test_triple_python(self):
+        assert word_frequencies("Python Python python") == {"python": 3}
+
+    def test_ala_ma_kota(self):
+        assert word_frequencies("Ala ma kota, a kot ma Ale.") == {"ala": 1, "ma": 2, "kota": 1, 'a': 1, 'kot': 1, 'ale': 1}

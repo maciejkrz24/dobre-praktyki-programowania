@@ -37,7 +37,8 @@ def flatten_list(nested_list: list) -> list:
 
 # 6. word_frequencies(text: str) -> dict - zwraca słownik z częstością występowania słów w tekście (ignorując wielkość liter i interpunkcję).
 def word_frequencies(text: str) -> dict:
-    return {word.lower(): text.lower().count(word.lower()) for word in text.split()}
+    text_split = text.lower().replace(",", "").replace(".", "").split()
+    return {word: text_split.count(word) for word in text_split}
 
 # 7. is_prime(n: int) -> bool - sprawdza, czy liczba jest pierwsza.  Jeśli n < 2, zwraca False.
 def is_prime(n: int) -> bool:
