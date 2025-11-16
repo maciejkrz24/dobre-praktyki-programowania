@@ -2,7 +2,8 @@ import pytest
 from src.main import (
     is_palindrome,
     fibonacci,
-    count_vowels
+    count_vowels,
+    calculate_discount
 )
 
 
@@ -40,6 +41,7 @@ class TestFibonacci:
         with pytest.raises(ValueError):
             fibonacci(-1)
 
+
 class TestCountVowels:
     def test_basic(self):
         assert count_vowels("Python") == 2
@@ -55,3 +57,22 @@ class TestCountVowels:
 
     def test_polish(self):
         assert count_vowels("Próba żółwia") == 5
+
+
+class TestCalculateDiscount:
+    def test_basic(self):
+        assert calculate_discount(100, 0.2) == 80.0
+
+    def test_zero_discount(self):
+        assert calculate_discount(50, 0) == 50.0
+
+    def test_one_discount(self):
+        assert calculate_discount(200, 1) == 0.0
+
+    def test_negative_discount(self):
+        with pytest.raises(ValueError):
+            calculate_discount(100, -0.1)
+
+    def test_discount_out_of_range(self):
+        with pytest.raises(ValueError):
+            calculate_discount(100, 1.5)
