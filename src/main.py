@@ -15,7 +15,7 @@ def fibonacci(n: int) -> int:
 
 # 3. count_vowels(text: str) -> int - zlicza liczbę samogłosek w podanym ciągu (a, e, i, o, u, y – wielkość liter bez znaczenia).
 def count_vowels(text: str) -> int:
-    return sum(1 for char in text.lower() if char in 'aeiouy')
+    return sum(1 for char in text.lower() if char in 'aeiouóyęą')
 
 # 4. calculate_discount(price: float, discount: float) -> float - zwraca cenę po uwzględnieniu zniżki (np. calculate_discount(100, 0.2) → 80).  Jeśli discount jest spoza zakresu 0–1, ma zostać zgłoszony wyjątek ValueError.
 def calculate_discount(price: float, discount: float) -> float:
