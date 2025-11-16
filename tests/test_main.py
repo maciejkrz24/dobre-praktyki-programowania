@@ -5,7 +5,8 @@ from src.main import (
     count_vowels,
     calculate_discount,
     flatten_list,
-    word_frequencies
+    word_frequencies,
+    is_prime
 )
 
 
@@ -112,3 +113,26 @@ class TestWordFrequencies:
 
     def test_ala_ma_kota(self):
         assert word_frequencies("Ala ma kota, a kot ma Ale.") == {"ala": 1, "ma": 2, "kota": 1, 'a': 1, 'kot': 1, 'ale': 1}
+
+
+class TestIsPrime:
+    def test_two(self):
+        assert is_prime(2) == True
+
+    def test_three(self):
+        assert is_prime(3) == True
+
+    def test_four(self):
+        assert is_prime(4) == False
+
+    def test_zero(self):
+        assert is_prime(0) == False
+    
+    def test_one(self):
+        assert is_prime(1) == False
+    
+    def test_five(self):
+        assert is_prime(5) == True
+    
+    def test_97(self):
+        assert is_prime(97) == True
