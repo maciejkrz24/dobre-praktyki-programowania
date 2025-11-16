@@ -8,6 +8,8 @@ def fibonacci(n: int) -> int:
         return 0
     elif n == 1:
         return 1
+    elif n < 0:
+        raise ValueError("n must be non-negative")
     else:
         return fibonacci(n - 1) + fibonacci(n - 2)
 
