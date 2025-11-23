@@ -1,16 +1,18 @@
 from typing import *
 from flask import Flask
-from sqlalchemy import create_engine
-
-from src.models import Movie, Link, Rating, Tag
 from sqlalchemy.orm import Session
+from sqlalchemy import create_engine, select
+from os import path
 
-engine = create_engine("sqlite://", echo=True)
-ase.metadata.create_all(engine)
+from src.models import BaseModel, Movie, Link, Rating, Tag, load_from_csv
+
+engine = create_engine("sqlite:///./.data.db", echo=True)
+if not path.exists(".data.db"):
+    BaseModel.metadata.create_all(engine)
+    with Session(engine) as session:
+        load_from_csv(session)
+
 app = Flask(__name__)
-
-with Session(engine) as session:
-    pass
 
 @app.route("/")
 def hello_world():
@@ -18,16 +20,24 @@ def hello_world():
 
 @app.route("/movies/")
 def get_movies():
-    return [ movie.__dict__ for movie in Movie.load_movies() ]
+    with Session(engine) as session:
+        tmp = session.query(Movie).all()
+        return [ {"movieId": movie.movieId, "title": movie.title, "genres": movie.genres} for movie in tmp ]
 
 @app.route("/links/")
 def get_links():
-    return [ link.__dict__ for link in Link.load_links() ]
+    with Session(engine) as session:
+        tmp = session.query(Link).all()
+        return [ {"movieId": link.movieId, "imdbId": link.imdbId, "tmdbId": link.tmdbId} for link in tmp ]
 
 @app.route("/ratings/")
 def get_ratings():
-    return [ rating.__dict__ for rating in Rating.load_ratings() ]
+    with Session(engine) as session:
+        tmp = session.query(Rating).all()
+        return [ {"userId": rating.userId, "movieId": rating.movieId, "rating": rating.rating, "timestamp": rating.timestamp} for rating in tmp ]
 
 @app.route("/tags/")
 def get_tags():
-    return [ tag.__dict__ for tag in Tag.load_tags() ]
+    with Session(engine) as session:
+        tmp = session.query(Tag).all()
+        return [ {"userId": tag.userId, "movieId": tag.movieId, "tag": tag.tag, "timestamp": tag.timestamp} for tag in tmp ]
