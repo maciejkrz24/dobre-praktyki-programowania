@@ -1,8 +1,16 @@
 from typing import *
 from flask import Flask
-from src.models import Movie, Link, Rating, Tag
+from sqlalchemy import create_engine
 
+from src.models import Movie, Link, Rating, Tag
+from sqlalchemy.orm import Session
+
+engine = create_engine("sqlite://", echo=True)
+ase.metadata.create_all(engine)
 app = Flask(__name__)
+
+with Session(engine) as session:
+    pass
 
 @app.route("/")
 def hello_world():
