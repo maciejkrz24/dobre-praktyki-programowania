@@ -1,27 +1,8 @@
 from typing import *
 from flask import Flask
+from src.models import Movie, Link, Rating, Tag
 
 app = Flask(__name__)
-
-class Movie:
-    def __init__(self, movieId, title, genres):
-        self.movieId = movieId
-        self.title = title
-        self.genres = genres
-
-    def __repr__(self):
-        return f"Movie({self.movieId}: '{self.title}' [{self.genres}])"
-
-def load_movies():
-    print("Opening movies.csv...")
-    with open('./movies/movies.csv', 'r') as f:
-        for (idx, line) in enumerate(f.readlines()):
-            if idx == 0: continue
-            movie = line.strip().split(',')
-            movieId = movie[0]
-            title = movie[1]
-            genres = movie[2]
-            yield Movie(movieId, title, genres)
 
 @app.route("/")
 def hello_world():
@@ -29,5 +10,16 @@ def hello_world():
 
 @app.route("/movies/")
 def get_movies():
-    movies = [ movie.__dict__ for movie in load_movies() ]
-    return movies
+    return [ movie.__dict__ for movie in Movie.load_movies() ]
+
+@app.route("/links/")
+def get_links():
+    return [ link.__dict__ for link in Link.load_links() ]
+
+@app.route("/ratings/")
+def get_ratings():
+    return [ rating.__dict__ for rating in Rating.load_ratings() ]
+
+@app.route("/tags/")
+def get_tags():
+    return [ tag.__dict__ for tag in Tag.load_tags() ]
