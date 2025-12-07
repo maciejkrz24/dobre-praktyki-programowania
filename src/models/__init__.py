@@ -44,6 +44,13 @@ class Tag(BaseModel):
     timestamp: Mapped[int]
 
 
+class User(BaseModel):
+    __tablename__ = "users"
+    userId: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str]
+    password: Mapped[str]
+
+
 def load_from_csv(session):
     with open("movies/movies.csv", 'r') as f:
         for idx, line in enumerate(f.readlines()):
