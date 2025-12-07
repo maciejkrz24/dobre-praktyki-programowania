@@ -49,6 +49,7 @@ class User(BaseModel):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     username: Mapped[str] = mapped_column(unique=True)
     password: Mapped[str]
+    roles: Mapped[str] = mapped_column(default="[]")
 
 
 def load_from_csv(session):

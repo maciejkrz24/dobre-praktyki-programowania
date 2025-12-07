@@ -7,6 +7,7 @@ from os import path
 from datetime import datetime, timedelta
 import jwt
 import bcrypt
+import json
 
 from src.models import BaseModel, Movie, Link, Rating, Tag, User, load_from_csv
 
@@ -50,6 +51,38 @@ def token_required(f):
     return decorated
 
 
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+
+        if 'Authorization' in request.headers:
+            auth_header = request.headers['Authorization']
+            try:
+                token = auth_header.split(" ")[1]
+            except IndexError:
+                return jsonify({"error": "Invalid token format. Use: Bearer <token>"}), 401
+
+        if not token:
+            return jsonify({"error": "Token is missing. Authorization header required"}), 401
+
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            request.current_user = payload
+
+            roles = payload.get("roles", [])
+            if "ROLE_ADMIN" not in roles:
+                return jsonify({"error": "Access denied. ROLE_ADMIN required"}), 403
+
+        except jwt.ExpiredSignatureError:
+            return jsonify({"error": "Token has expired"}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({"error": "Invalid token"}), 401
+
+        return f(*args, **kwargs)
+    return decorated
+
+
 @app.route("/")
 def hello_world():
     return {'hello': 'world'}
@@ -79,8 +112,14 @@ def login():
         if not bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
             return jsonify({"error": "Invalid password"}), 401
 
+        try:
+            roles = json.loads(user.roles) if user.roles else []
+        except json.JSONDecodeError:
+            roles = []
+
     payload = {
         "sub": username,
+        "roles": roles,
         "iat": datetime.utcnow(),
         "exp": datetime.utcnow() + timedelta(hours=1)
     }
@@ -90,13 +129,27 @@ def login():
         "message": "Login successful",
         "user": {
             "username": user.username,
+            "roles": roles
         },
         "access_token": token,
         "token_type": "bearer"
     }), 200
 
-@app.route("/users", methods=["POST"])
+
+@app.route("/user_details", methods=["GET"])
 @token_required
+def get_user_details():
+    user_payload = request.current_user
+    return jsonify({
+        "username": user_payload.get("sub"),
+        "roles": user_payload.get("roles", []),
+        "issued_at": user_payload.get("iat"),
+        "expires_at": user_payload.get("exp")
+    }), 200
+
+
+@app.route("/users", methods=["POST"])
+@admin_required
 def create_user():
     data = request.json
     hashed_password = bcrypt.hashpw(
@@ -104,14 +157,20 @@ def create_user():
         bcrypt.gensalt()
     ).decode('utf-8')
 
+    roles = data.get("roles", ["ROLE_USER"])
+
     with Session(engine) as session:
         new_user = User(
             username=data.get("username"),
-            password=hashed_password
+            password=hashed_password,
+            roles=json.dumps(roles)
         )
         session.add(new_user)
         session.commit()
-        return jsonify({"username": new_user.username}), 201
+        return jsonify({
+            "username": new_user.username,
+            "roles": roles
+        }), 201
 
 ##########
 # MOVIES #
@@ -155,7 +214,7 @@ def update_movie(movie_id):
         movie = session.query(Movie).filter(Movie.movieId == movie_id).first()
         if movie is None:
             return jsonify({"error": "Movie not found"}), 404
-        
+
         movie.title = data.get("title", movie.title)
         movie.genres = data.get("genres", movie.genres)
         session.commit()
@@ -168,7 +227,7 @@ def delete_movie(movie_id):
         movie = session.query(Movie).filter(Movie.movieId == movie_id).first()
         if movie is None:
             return jsonify({"error": "Movie not found"}), 404
-        
+
         session.delete(movie)
         session.commit()
         return jsonify({"message": "Movie deleted successfully"}), 200
@@ -215,7 +274,7 @@ def update_link(movie_id):
         link = session.query(Link).filter(Link.movieId == movie_id).first()
         if link is None:
             return jsonify({"error": "Link not found"}), 404
-        
+
         link.imdbId = data.get("imdbId", link.imdbId)
         link.tmdbId = data.get("tmdbId", link.tmdbId)
         session.commit()
@@ -228,7 +287,7 @@ def delete_link(movie_id):
         link = session.query(Link).filter(Link.movieId == movie_id).first()
         if link is None:
             return jsonify({"error": "Link not found"}), 404
-        
+
         session.delete(link)
         session.commit()
         return jsonify({"message": "Link deleted successfully"}), 200
@@ -277,7 +336,7 @@ def update_rating(rating_id):
         rating = session.query(Rating).filter(Rating.ratingId == rating_id).first()
         if rating is None:
             return jsonify({"error": "Rating not found"}), 404
-        
+
         rating.userId = data.get("userId", rating.userId)
         rating.movieId = data.get("movieId", rating.movieId)
         rating.rating = data.get("rating", rating.rating)
@@ -292,7 +351,7 @@ def delete_rating(rating_id):
         rating = session.query(Rating).filter(Rating.ratingId == rating_id).first()
         if rating is None:
             return jsonify({"error": "Rating not found"}), 404
-        
+
         session.delete(rating)
         session.commit()
         return jsonify({"message": "Rating deleted successfully"}), 200
@@ -341,7 +400,7 @@ def update_tag(tag_id):
         tag = session.query(Tag).filter(Tag.tagId == tag_id).first()
         if tag is None:
             return jsonify({"error": "Tag not found"}), 404
-        
+
         tag.userId = data.get("userId", tag.userId)
         tag.movieId = data.get("movieId", tag.movieId)
         tag.tag = data.get("tag", tag.tag)
@@ -356,7 +415,7 @@ def delete_tag(tag_id):
         tag = session.query(Tag).filter(Tag.tagId == tag_id).first()
         if tag is None:
             return jsonify({"error": "Tag not found"}), 404
-        
+
         session.delete(tag)
         session.commit()
         return jsonify({"message": "Tag deleted successfully"}), 200
