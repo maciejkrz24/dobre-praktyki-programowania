@@ -36,14 +36,33 @@ def login():
     if not username or not password:
         return jsonify({"error": "Username and password are required"}), 400
 
+    with Session(engine) as session:
+        user = session.query(User).filter(User.username == username).first()
+        if movie is None:
+            return jsonify({"error": f"User {username} not found"}), 400
+
+        if user.password != password:
+            return jsonify({"error": "Invalid password"}), 401
+
     return jsonify({
         "message": "Login successful",
         "user": {
-            "username": username,
-            "userId": 1  # Placeholder user ID
+            "username": user.username,
         },
-        "token": "placeholder_jwt_token"  # TODO: Generate real JWT token
+        "token": "placeholder_jwt_token"
     }), 200
+
+@app.route("/users", methods=["POST"])
+def create_user():
+    data = request.json
+    with Session(engine) as session:
+        new_user = User(
+            username=data.get("username"),
+            password=data.get("password")
+        )
+        session.add(new_user)
+        session.commit()
+        return jsonify({"username": new_user.username}), 201
 
 ##########
 # MOVIES #

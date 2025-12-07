@@ -46,7 +46,6 @@ class Tag(BaseModel):
 
 class User(BaseModel):
     __tablename__ = "users"
-    userId: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str]
     password: Mapped[str]
 
