@@ -19,6 +19,32 @@ app = Flask(__name__)
 def hello_world():
     return {'hello': 'world'}
 
+#########
+# LOGIN #
+#########
+
+@app.route("/login", methods=["POST"])
+def login():
+    data = request.json
+    
+    if not data:
+        return jsonify({"error": "Request body is required"}), 400
+    
+    username = data.get("username")
+    password = data.get("password")
+    
+    if not username or not password:
+        return jsonify({"error": "Username and password are required"}), 400
+
+    return jsonify({
+        "message": "Login successful",
+        "user": {
+            "username": username,
+            "userId": 1  # Placeholder user ID
+        },
+        "token": "placeholder_jwt_token"  # TODO: Generate real JWT token
+    }), 200
+
 ##########
 # MOVIES #
 ##########
