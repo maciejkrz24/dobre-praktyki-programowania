@@ -1,7 +1,9 @@
 import pytest
+import bcrypt
+import json
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
-from src.models import BaseModel, Movie, Link, Rating, Tag
+from src.models import BaseModel, Movie, Link, Rating, Tag, User
 from src.main import app
 
 
@@ -33,6 +35,34 @@ def client(test_engine):
         yield client
 
     main_module.engine = original_engine
+
+
+@pytest.fixture(scope="function")
+def sample_users(test_session):
+    hashed_password = bcrypt.hashpw(
+        "password123".encode("utf-8"), bcrypt.gensalt()
+    ).decode("utf-8")
+
+    admin_hashed_password = bcrypt.hashpw(
+        "adminpass".encode("utf-8"), bcrypt.gensalt()
+    ).decode("utf-8")
+
+    users = [
+        User(
+            username="testuser_auth",
+            password=hashed_password,
+            roles=json.dumps(["ROLE_USER"]),
+        ),
+        User(
+            username="admin",
+            password=admin_hashed_password,
+            roles=json.dumps(["ROLE_ADMIN", "ROLE_USER"]),
+        ),
+    ]
+    for user in users:
+        test_session.add(user)
+    test_session.commit()
+    return users
 
 
 @pytest.fixture(scope="function")
