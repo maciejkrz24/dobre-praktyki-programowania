@@ -1,25 +1,25 @@
-import csv
 import os
-from datetime import datetime
 from collections import Counter
-
-QUEUE_FILE = "queue.csv"
+from database import get_connection, initialize_database, dict_from_row, DATABASE_FILE
 
 
 def read_queue():
-    if not os.path.exists(QUEUE_FILE):
-        return []
-
-    with open(QUEUE_FILE, "r", newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        return list(reader)
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM queue ORDER BY created_at ASC")
+    rows = cursor.fetchall()
+    
+    conn.close()
+    
+    return [dict_from_row(row) for row in rows]
 
 
 def display_stats():
     tasks = read_queue()
 
     if not tasks:
-        print("📊 Kolejka jest pusta!")
+        print("Kolejka jest pusta!")
         return
 
     status_counts = Counter(task["status"] for task in tasks)
@@ -51,19 +51,34 @@ def display_stats():
 
 
 def clear_queue():
-    if os.path.exists(QUEUE_FILE):
-        os.remove(QUEUE_FILE)
-        print("Kolejka wyczyszczona!")
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("DELETE FROM queue")
+    
+    conn.commit()
+    conn.close()
+    
+    print("Kolejka wyczyszczona!")
+
+
+def drop_database():
+    if os.path.exists(DATABASE_FILE):
+        os.remove(DATABASE_FILE)
+        print("Baza danych usunięta!")
     else:
-        print("Kolejka jest już pusta!")
+        print("Baza danych nie istnieje!")
 
 
 if __name__ == "__main__":
+    initialize_database()
+    
     print("Wybierz opcję:")
     print("1. Pokaż statystyki")
-    print("2. Wyczyść kolejkę")
+    print("2. Wyczyść kolejkę (usuń wszystkie zadania)")
+    print("3. Usuń bazę danych")
 
-    choice = input("\nTwój wybór (1/2): ").strip()
+    choice = input("\nTwój wybór (1/2/3): ").strip()
 
     if choice == "1":
         display_stats()
@@ -73,6 +88,14 @@ if __name__ == "__main__":
         )
         if confirm == "tak":
             clear_queue()
+        else:
+            print("Anulowano.")
+    elif choice == "3":
+        confirm = (
+            input("Czy na pewno chcesz usunąć bazę danych? (tak/nie): ").strip().lower()
+        )
+        if confirm == "tak":
+            drop_database()
         else:
             print("Anulowano.")
     else:

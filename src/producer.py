@@ -1,35 +1,25 @@
-import csv
 import uuid
-import os
 from datetime import datetime
-from pathlib import Path
-
-QUEUE_FILE = "queue.csv"
-
-
-def initialize_queue_file():
-    if not os.path.exists(QUEUE_FILE):
-        with open(QUEUE_FILE, "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow(
-                [
-                    "id",
-                    "status",
-                    "created_at",
-                    "started_at",
-                    "completed_at",
-                    "consumer_id",
-                ]
-            )
+from database import get_connection, initialize_database
 
 
 def add_task_to_queue(task_description="Rozmowa telefoniczna"):
     task_id = str(uuid.uuid4())
     created_at = datetime.now().isoformat()
 
-    with open(QUEUE_FILE, "a", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow([task_id, "pending", created_at, "", "", ""])
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute(
+        """
+        INSERT INTO queue (id, status, created_at)
+        VALUES (?, 'pending', ?)
+        """,
+        (task_id, created_at)
+    )
+    
+    conn.commit()
+    conn.close()
 
     print(f"Dodano zadanie do kolejki: {task_id}")
     return task_id
@@ -37,15 +27,33 @@ def add_task_to_queue(task_description="Rozmowa telefoniczna"):
 
 def add_multiple_tasks(count=100):
     print(f"Dodawanie {count} zadań do kolejki...")
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
     for i in range(1, count + 1):
-        add_task_to_queue(f"Rozmowa telefoniczna #{i}")
+        task_id = str(uuid.uuid4())
+        created_at = datetime.now().isoformat()
+        
+        cursor.execute(
+            """
+            INSERT INTO queue (id, status, created_at)
+            VALUES (?, 'pending', ?)
+            """,
+            (task_id, created_at)
+        )
+        
         if i % 10 == 0:
             print(f"Postęp: {i}/{count}")
+    
+    conn.commit()
+    conn.close()
+    
     print(f"\nDodano {count} zadań do kolejki!")
 
 
 if __name__ == "__main__":
-    initialize_queue_file()
+    initialize_database()
 
     print("Wybierz opcję:")
     print("1. Dodaj jedno zadanie")

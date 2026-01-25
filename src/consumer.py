@@ -1,14 +1,10 @@
-import csv
 import time
-import os
-from datetime import datetime
 import sys
 import uuid
-
-QUEUE_FILE = "queue.csv"
+from datetime import datetime
+from database import get_connection, initialize_database, dict_from_row
 
 TASK_DURATION = 30
-
 CHECK_INTERVAL = 5
 
 
@@ -17,36 +13,51 @@ class Consumer:
         self.consumer_id = consumer_id or str(uuid.uuid4())[:8]
         print(f"Consumer {self.consumer_id} uruchomiony!")
 
-    def read_queue(self):
-        if not os.path.exists(QUEUE_FILE):
-            return []
-
-        with open(QUEUE_FILE, "r", newline="", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            return list(reader)
-
-    def write_queue(self, tasks):
-        if not tasks:
-            return
-
-        with open(QUEUE_FILE, "w", newline="", encoding="utf-8") as f:
-            fieldnames = [
-                "id",
-                "status",
-                "created_at",
-                "started_at",
-                "completed_at",
-                "consumer_id",
-            ]
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(tasks)
-
-    def find_pending_task(self, tasks):
-        for i, task in enumerate(tasks):
-            if task["status"] == "pending":
-                return i
-        return None
+    def find_and_claim_pending_task(self):
+        conn = get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            """
+            SELECT * FROM queue 
+            WHERE status = 'pending' 
+            ORDER BY created_at ASC 
+            LIMIT 1
+            """
+        )
+        task = cursor.fetchone()
+        
+        if task is None:
+            conn.close()
+            return None
+        
+        task_dict = dict_from_row(task)
+        task_id = task_dict["id"]
+        started_at = datetime.now().isoformat()
+        
+        cursor.execute(
+            """
+            UPDATE queue 
+            SET status = 'in_progress', 
+                started_at = ?, 
+                consumer_id = ?
+            WHERE id = ? AND status = 'pending'
+            """,
+            (started_at, self.consumer_id, task_id)
+        )
+        
+        if cursor.rowcount == 0:
+            conn.close()
+            return None
+        
+        conn.commit()
+        conn.close()
+        
+        task_dict["status"] = "in_progress"
+        task_dict["started_at"] = started_at
+        task_dict["consumer_id"] = self.consumer_id
+        
+        return task_dict
 
     def execute_task(self, task):
         task_id = task["id"]
@@ -61,36 +72,33 @@ class Consumer:
 
         print(f"[{self.consumer_id}] Zadanie zakończone: {task_id}")
 
+    def complete_task(self, task_id):
+        conn = get_connection()
+        cursor = conn.cursor()
+        
+        completed_at = datetime.now().isoformat()
+        
+        cursor.execute(
+            """
+            UPDATE queue 
+            SET status = 'done', 
+                completed_at = ?
+            WHERE id = ?
+            """,
+            (completed_at, task_id)
+        )
+        
+        conn.commit()
+        conn.close()
+
     def process_queue(self):
-        tasks = self.read_queue()
+        task = self.find_and_claim_pending_task()
 
-        if not tasks:
+        if task is None:
             return False
-
-        pending_index = self.find_pending_task(tasks)
-
-        if pending_index is None:
-            return False
-
-        task = tasks[pending_index]
-
-        task["status"] = "in_progress"
-        task["started_at"] = datetime.now().isoformat()
-        task["consumer_id"] = self.consumer_id
-
-        self.write_queue(tasks)
 
         self.execute_task(task)
-
-        tasks = self.read_queue()
-
-        for t in tasks:
-            if t["id"] == task["id"]:
-                t["status"] = "done"
-                t["completed_at"] = datetime.now().isoformat()
-                break
-
-        self.write_queue(tasks)
+        self.complete_task(task["id"])
 
         return True
 
@@ -113,6 +121,8 @@ class Consumer:
 
 
 if __name__ == "__main__":
+    initialize_database()
+    
     consumer_id = sys.argv[1] if len(sys.argv) > 1 else None
 
     print("CONSUMER\n")
